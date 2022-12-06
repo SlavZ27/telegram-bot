@@ -10,14 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.entity.NotificationTask;
-import org.apache.commons.lang3.StringUtils;
-import pro.sky.telegrambot.repository.NotificationTaskRepository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -25,44 +18,33 @@ public class TelegramBotUpdatesService {
 
     private final static String MESSAGE_START = "I can process a welcome message";
     private final static String MESSAGE_UNKNOWN = "I don't know this command";
-    private final static String MESSAGE_NOTIFICATION_DEFAULT = "/notification 01.01.2022 20:00 Сделать домашнюю работу";
-    private final static String MESSAGE_BAD_REQUEST_NOTIFICATION = "Sorry. This request is bad. I need a request like : " + MESSAGE_NOTIFICATION_DEFAULT;
+
     private final static String COMMAND_START = "/start";
-    private final static String COMMAND_NOTIFICATION = "/notification";
     private final static String MESSAGE_NOT_COMMAND = "Sorry. I can process only two command : " +
-            COMMAND_START + " and " + COMMAND_NOTIFICATION + ", like '" + MESSAGE_NOTIFICATION_DEFAULT + "'";
-    private final static String ALPHABET_DATE = "0123456789.";
-    private final static String ALPHABET_TIME = "0123456789:";
+            COMMAND_START + " and " + NotificationService.COMMAND_NOTIFICATION + ", like '" +
+            NotificationService.MESSAGE_NOTIFICATION_DEFAULT + "'";
+
     private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesService.class);
     @Autowired
     private TelegramBot telegramBot;
     @Autowired
-    private NotificationTaskRepository notificationTaskRepository;
+    private NotificationService notificationService;
 
 
     @Scheduled(fixedDelay = 60_000)
-    private void checkActualNotification() {
-        LocalDateTime localDateTime1 = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
-        LocalDateTime localDateTime2 = localDateTime1.plusSeconds(59);
-        List<NotificationTask> notificationTaskList =
-                notificationTaskRepository.findAllByDoneIsFalseAndDateTimeIsBetween(localDateTime1, localDateTime2);
-        logger.info("Method checkActualNotification was started in {}, and found {} actual notification(s)", localDateTime1, notificationTaskList.size());
-        if (notificationTaskList.size() > 0) {
-            sendNotifications(notificationTaskList);
-        }
-    }
+    private void sendActualNotifications() {
+        List<NotificationTask> notificationTaskList = notificationService.getActualNotification();
+        logger.info("Method sendActualNotifications was started for send {} notification(s)", notificationTaskList.size());
 
-    private void sendNotifications(List<NotificationTask> notificationTaskList) {
-        logger.info("Method sendNotification was started for send {} notification(s)", notificationTaskList.size());
+
         notificationTaskList.forEach(notificationTask -> {
             Long idChat = notificationTask.getIdChat();
             String message = notificationTask.getTextMessage();
-            logger.info("ChatId={}; Method sendNotification process message : {}", idChat, message);
+            logger.info("ChatId={}; Method sendActualNotifications process message : {}", idChat, message);
             sendMessage(idChat, message);
-            notificationTask.setDone(true);
-            notificationTaskRepository.save(notificationTask);
+            notificationService.setNotificationComplete(notificationTask);
         });
-        logger.info("Method sendNotification completed processing notification(s)");
+        logger.info("Method sendActualNotifications completed processing notification(s)");
     }
 
     public void processUpdate(Update update) {
@@ -84,9 +66,12 @@ public class TelegramBotUpdatesService {
                     logger.info("ChatId={}; Method processUpdate detected '" + COMMAND_START + "'", idChat);
                     processStart(update);
                     break;
-                case COMMAND_NOTIFICATION:
-                    logger.info("ChatId={}; Method processUpdate detected '" + COMMAND_NOTIFICATION + "'", idChat);
-                    processNotification(update);
+                case NotificationService.COMMAND_NOTIFICATION:
+                    logger.info("ChatId={}; Method processUpdate detected '" +
+                            NotificationService.COMMAND_NOTIFICATION + "'", idChat);
+                    sendMessage(idChat,
+                            notificationService.processNotification(update)
+                    );
                     break;
                 default:
                     logger.info("ChatId={}; Method processUpdate detected unknown command", idChat);
@@ -97,31 +82,6 @@ public class TelegramBotUpdatesService {
             logger.info("ChatId={}; Method processUpdate don't detected command", idChat);
             sendMessage(idChat, MESSAGE_NOT_COMMAND);
         }
-
-    }
-
-    private void processNotification(Update update) {
-        Long idChat = update.message().chat().id();
-        logger.info("ChatId={}; Method processNotification was started for process update", idChat);
-
-        if (update.message().text().length() < COMMAND_NOTIFICATION.length()) {
-            logger.info("ChatId={}; Method processNotification detected bad request notification : {}", idChat, update.message().text());
-            sendMessage(idChat, MESSAGE_BAD_REQUEST_NOTIFICATION);
-            return;
-        }
-
-        NotificationTask notificationTask = parseNotificationTaskFromUpdate(update);
-        if (notificationTask == null) {
-            logger.info("ChatId={}; Method parseNotificationTaskFromUpdate in processNotification can't parse this request notification : {}", idChat, update.message().text());
-            sendMessage(idChat, MESSAGE_BAD_REQUEST_NOTIFICATION);
-            return;
-        }
-
-        notificationTaskRepository.save(notificationTask);
-
-        String createdNotification = notificationTask.getDateTime() + " " + notificationTask.getTextMessage();
-        logger.info("ChatId={}; Method processNotification save request notification : {}", idChat, createdNotification);
-        sendMessage(idChat, "Notification '" + createdNotification + "' is create");
     }
 
     private void processStart(Update update) {
@@ -148,51 +108,5 @@ public class TelegramBotUpdatesService {
         } else {
             logger.info("ChatId={}; Method sendMessage received an error : {}", idChat, response.errorCode());
         }
-
-    }
-
-    private NotificationTask parseNotificationTaskFromUpdate(Update update) {
-        StringBuilder sb = new StringBuilder(update.message().text().substring(COMMAND_NOTIFICATION.length()).trim());
-        if (sb.length() < 14 || sb.indexOf(" ") < 0) {
-            return null;
-        }
-        Long idChat = update.message().chat().id();
-
-        String[] words = new String[3];
-        words[0] = sb.substring(0, sb.indexOf(" "));
-        sb.delete(0, sb.indexOf(" ") + 1);
-
-        words[1] = sb.substring(0, sb.indexOf(" "));
-        sb.delete(0, sb.indexOf(" ") + 1);
-
-        words[2] = sb.substring(0);
-
-        LocalTime localTime = null;
-        LocalDate localDate = null;
-        String textMessage = null;
-
-        for (String word : words) {
-            if (localDate == null && StringUtils.containsOnly(word, ALPHABET_DATE)) {
-                localDate = LocalDate.parse(word, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-            } else if (localTime == null && StringUtils.containsOnly(word, ALPHABET_TIME)) {
-                localTime = LocalTime.parse(word, DateTimeFormatter.ofPattern("HH:mm"));
-            } else if (textMessage == null) {
-                textMessage = word;
-            }
-        }
-        if (localTime == null || localDate == null) {
-            return null;
-        }
-        LocalDateTime dateTime = LocalDateTime.of(localDate, localTime);
-
-        NotificationTask notificationTask = new NotificationTask();
-        notificationTask.setDateTime(dateTime);
-        notificationTask.setIdChat(idChat);
-        notificationTask.setTextMessage(textMessage);
-        notificationTask.setDone(false);
-        notificationTask.setSender(update.message().from().username());
-
-
-        return notificationTask;
     }
 }
