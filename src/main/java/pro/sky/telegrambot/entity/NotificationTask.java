@@ -1,7 +1,7 @@
 package pro.sky.telegrambot.entity;
 
-import jakarta.persistence.*;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,8 +15,17 @@ public class NotificationTask {
     private String textMessage;
     private LocalDateTime dateTime;
     private boolean isDone;
+    private String sender;
 
     public NotificationTask() {
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public void setSender(String sender) {
+        this.sender = sender;
     }
 
     public boolean isDone() {

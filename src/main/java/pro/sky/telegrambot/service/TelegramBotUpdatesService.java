@@ -29,6 +29,8 @@ public class TelegramBotUpdatesService {
     private final static String MESSAGE_BAD_REQUEST_NOTIFICATION = "Sorry. This request is bad. I need a request like : " + MESSAGE_NOTIFICATION_DEFAULT;
     private final static String COMMAND_START = "/start";
     private final static String COMMAND_NOTIFICATION = "/notification";
+    private final static String MESSAGE_NOT_COMMAND = "Sorry. I can process only two command : " +
+            COMMAND_START + " and " + COMMAND_NOTIFICATION + ", like '" + MESSAGE_NOTIFICATION_DEFAULT + "'";
     private final static String ALPHABET_DATE = "0123456789.";
     private final static String ALPHABET_TIME = "0123456789:";
     private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesService.class);
@@ -91,7 +93,11 @@ public class TelegramBotUpdatesService {
                     processUnknown(update);
                     break;
             }
+        } else {
+            logger.info("ChatId={}; Method processUpdate don't detected command", idChat);
+            sendMessage(idChat, MESSAGE_NOT_COMMAND);
         }
+
     }
 
     private void processNotification(Update update) {
@@ -147,6 +153,9 @@ public class TelegramBotUpdatesService {
 
     private NotificationTask parseNotificationTaskFromUpdate(Update update) {
         StringBuilder sb = new StringBuilder(update.message().text().substring(COMMAND_NOTIFICATION.length()).trim());
+        if (sb.length() < 14 || sb.indexOf(" ") < 0) {
+            return null;
+        }
         Long idChat = update.message().chat().id();
 
         String[] words = new String[3];
@@ -181,6 +190,8 @@ public class TelegramBotUpdatesService {
         notificationTask.setIdChat(idChat);
         notificationTask.setTextMessage(textMessage);
         notificationTask.setDone(false);
+        notificationTask.setSender(update.message().from().username());
+
 
         return notificationTask;
     }
