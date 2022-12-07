@@ -1,6 +1,7 @@
 package pro.sky.telegrambot.entity;
 
 
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
@@ -11,29 +12,25 @@ public class NotificationTask {
     @Id
     @GeneratedValue
     private Long id;
-    private Long idChat;
+    @ManyToOne
+    @JoinColumn(name = "id_chat")
+    private Chat chat;
     private String textMessage;
     private LocalDateTime dateTime;
+    private LocalDateTime localDateTime;
     private boolean isDone;
     private String sender;
+
 
     public NotificationTask() {
     }
 
-    public String getSender() {
-        return sender;
+    public LocalDateTime getLocalDateTime() {
+        return localDateTime;
     }
 
-    public void setSender(String sender) {
-        this.sender = sender;
-    }
-
-    public boolean isDone() {
-        return isDone;
-    }
-
-    public void setDone(boolean done) {
-        isDone = done;
+    public void setLocalDateTime(LocalDateTime localDateTime) {
+        this.localDateTime = localDateTime;
     }
 
     public Long getId() {
@@ -44,12 +41,12 @@ public class NotificationTask {
         this.id = id;
     }
 
-    public Long getIdChat() {
-        return idChat;
+    public Chat getChat() {
+        return chat;
     }
 
-    public void setIdChat(Long idChat) {
-        this.idChat = idChat;
+    public void setChat(Chat chat) {
+        this.chat = chat;
     }
 
     public String getTextMessage() {
@@ -66,5 +63,26 @@ public class NotificationTask {
 
     public void setDateTime(LocalDateTime dateTime) {
         this.dateTime = dateTime;
+    }
+
+    public boolean isDone() {
+        return isDone;
+    }
+
+    public void setDone(boolean done) {
+        isDone = done;
+    }
+
+    public String getSender() {
+        return sender;
+    }
+
+    public void setSender(String sender) {
+        this.sender = sender;
+    }
+
+    @Override
+    public String toString() {
+        return "Notification " + dateTime + " : '" + textMessage + "'";
     }
 }
