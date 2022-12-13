@@ -10,9 +10,19 @@ public class Chat {
     private Long id;
     @Column(name = "time_zone")
     private Integer timeZone;
+    @Column(name = "is_admin")
+    private boolean isAdmin;
 
 
     public Chat() {
+    }
+
+    public boolean isAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
     }
 
     public Long getId() {

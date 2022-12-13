@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class NotificationTask {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @ManyToOne
     @JoinColumn(name = "id_chat")
@@ -20,9 +20,19 @@ public class NotificationTask {
     private LocalDateTime localDateTime;
     private boolean isDone;
     private String sender;
+    @Column(name = "is_deleted")
+    private boolean isDeleted;
 
 
     public NotificationTask() {
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 
     public LocalDateTime getLocalDateTime() {

@@ -17,6 +17,8 @@ import java.util.List;
 public class TelegramBotSenderService {
 
     private final static String MESSAGE_UNKNOWN = "I don't know this command";
+    private final static String VARIABLE_EMPTY_SYMBOL_FOR_BUTTON = "...";
+    public final static String VARIABLE_EMPTY_CALLBACK_DATA_FOR_BUTTON = "...";
 
     public final static String ALL_PUBLIC_COMMANDS = TelegramBotUpdatesService.COMMAND_START + "\n" +
             NotificationService.COMMAND_NOTIFICATION + "\n" +
@@ -34,9 +36,9 @@ public class TelegramBotSenderService {
         SendMessage sendMessage = new SendMessage(idChat, textMessage);
         SendResponse response = telegramBot.execute(sendMessage);
         if (response.isOk()) {
-            logger.info("ChatId={}; Method sendMessage has completed sending the message", idChat);
+            logger.debug("ChatId={}; Method sendMessage has completed sending the message", idChat);
         } else {
-            logger.info("ChatId={}; Method sendMessage received an error : {}", idChat, response.errorCode());
+            logger.debug("ChatId={}; Method sendMessage received an error : {}", idChat, response.errorCode());
         }
     }
 
@@ -63,6 +65,7 @@ public class TelegramBotSenderService {
     }
 
     public void sendButtons(Long idChat, String caption, String command, List<String> nameButtons, int width, int height) {
+        logger.info("ChatId={}; Method sendButtons was started for send buttons", idChat);
         InlineKeyboardButton[][] tableButtons = new InlineKeyboardButton[height][width];
         int countNameButtons = 0;
         for (int i = 0; i < height; i++) {
@@ -71,15 +74,20 @@ public class TelegramBotSenderService {
                     tableButtons[i][j] = new InlineKeyboardButton(nameButtons.get(countNameButtons))
                             .callbackData(command + " " + nameButtons.get(countNameButtons));
                 } else {
-                    tableButtons[i][j] = new InlineKeyboardButton("...")
-                            .callbackData("...");
+                    tableButtons[i][j] = new InlineKeyboardButton(VARIABLE_EMPTY_SYMBOL_FOR_BUTTON)
+                            .callbackData(VARIABLE_EMPTY_CALLBACK_DATA_FOR_BUTTON);
                 }
                 countNameButtons++;
             }
         }
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup(tableButtons);
         SendMessage message = new SendMessage(idChat, caption).replyMarkup(inlineKeyboardMarkup);
-        telegramBot.execute(message);
+        SendResponse response = telegramBot.execute(message);
+        if (response.isOk()) {
+            logger.debug("ChatId={}; Method sendButtons has completed sending the message", idChat);
+        } else {
+            logger.debug("ChatId={}; Method sendButtons received an error : {}", idChat, response.errorCode());
+        }
     }
 
     public void sendWhatYourTimeZone(Update update) {
@@ -87,5 +95,4 @@ public class TelegramBotSenderService {
         logger.info("ChatId={}; Method sendWhatYourTimeZone was started for ask about Time zone of user", idChat);
         sendButtons(idChat, "What your time zone?", TimeZoneService.COMMAND_TIME_ZONE, timeZoneService.getTimeZoneList(), 4, 6);
     }
-
 }

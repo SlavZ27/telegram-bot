@@ -30,35 +30,33 @@ public class CalendarService {
     private ChatService chatService;
 
     public void calendarStart(Update update) {
+        Long idChat = update.message().chat().id();
+        logger.info("ChatId={}; Method calendarStart was start for start generate calendar", idChat);
+        logger.debug("ChatId={}; Method calendarStart going to start method sendYear", idChat);
         sendYear(update.message().chat().id());
     }
 
     public void processNext(Update update) {
+        logger.info("Method processNext was start for continue generate calendar");
         Long idChat = update.callbackQuery().from().id();
         String callbackQuery = update.callbackQuery().data();
 
         String[] callbackQueryMas = callbackQuery.split(" ");
         String command = callbackQueryMas[callbackQueryMas.length - 2];
-
-        Chat chat = chatService.findChat(idChat);
-        int fadeTimeZoneInHour = 0;
-        if (chat != null) {
-            fadeTimeZoneInHour = chat.getTimeZone();
-        }
+        int fadeTimeZoneInHour = calculateFadeTimeZoneHourForChat(idChat);
 
         switch (command) {
             case VARIABLE_YEAR:
+                logProcessNextDetectedValidCommand(command, idChat);
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NOW)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getYear());
+                                    plusHours(fadeTimeZoneInHour).getYear());
                 }
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NEXT)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getYear() + 1);
+                                    plusHours(fadeTimeZoneInHour).getYear() + 1);
                 }
                 sendMonth(
                         idChat,
@@ -66,17 +64,16 @@ public class CalendarService {
                 );
                 break;
             case VARIABLE_MONTH:
+                logProcessNextDetectedValidCommand(command, idChat);
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NOW)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getMonthValue());
+                                    plusHours(fadeTimeZoneInHour).getMonthValue());
                 }
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NEXT)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getMonthValue() + 1);
+                                    plusHours(fadeTimeZoneInHour).getMonthValue() + 1);
                 }
                 sendDay(
                         idChat,
@@ -85,17 +82,16 @@ public class CalendarService {
                 );
                 break;
             case VARIABLE_DAY:
+                logProcessNextDetectedValidCommand(command, idChat);
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NOW)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getDayOfMonth());
+                                    plusHours(fadeTimeZoneInHour).getDayOfMonth());
                 }
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NEXT)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getDayOfMonth() + 1);
+                                    plusHours(fadeTimeZoneInHour).getDayOfMonth() + 1);
                 }
                 sendHour(
                         idChat,
@@ -105,17 +101,16 @@ public class CalendarService {
                 );
                 break;
             case VARIABLE_HOUR:
+                logProcessNextDetectedValidCommand(command, idChat);
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NOW)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getHour());
+                                    plusHours(fadeTimeZoneInHour).getHour());
                 }
                 if (callbackQueryMas[callbackQueryMas.length - 1].equals(VARIABLE_NEXT)) {
                     callbackQueryMas[callbackQueryMas.length - 1] =
                             String.valueOf(LocalDateTime.now().
-                                    plusHours(fadeTimeZoneInHour).
-                                    minusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).getHour() + 1);
+                                    plusHours(fadeTimeZoneInHour).getHour() + 1);
                 }
                 sendMinutes(idChat,
                         Integer.parseInt(callbackQueryMas[callbackQueryMas.length - 7]),
@@ -128,11 +123,11 @@ public class CalendarService {
     }
 
     private void sendMinutes(Long idChat, int year, int month, int day, int hour) {
+        logSendMessageForContinueGenerateCalendar("sendMinutes", idChat);
         List<String> tableHour = new ArrayList<>();
         for (int i = 0; i < 60; i = i + 5) {
             tableHour.add(String.valueOf(i));
         }
-
         telegramBotSenderService.sendButtons(idChat, "Select minutes",
                 NotificationService.COMMAND_NOTIFICATION + " "
                         + VARIABLE_YEAR + " " + year + " "
@@ -144,6 +139,7 @@ public class CalendarService {
     }
 
     private void sendHour(Long idChat, int year, int month, int day) {
+        logSendMessageForContinueGenerateCalendar("sendHour", idChat);
         Chat chat = chatService.findChat(idChat);
         int fadeTimeZoneInHour = 0;
         if (chat != null) {
@@ -164,7 +160,6 @@ public class CalendarService {
                 tableHour.add(String.valueOf(i));
             }
         }
-
         telegramBotSenderService.sendButtons(idChat, "Select hour",
                 CalendarService.COMMAND_CALENDAR + " " +
                         NotificationService.COMMAND_NOTIFICATION + " "
@@ -176,6 +171,7 @@ public class CalendarService {
     }
 
     private void sendDay(Long idChat, int year, int month) {
+        logSendMessageForContinueGenerateCalendar("sendDay", idChat);
         Chat chat = chatService.findChat(idChat);
         int fadeTimeZoneInHour = 0;
         if (chat != null) {
@@ -211,6 +207,7 @@ public class CalendarService {
     }
 
     private void sendMonth(Long idChat, int year) {
+        logSendMessageForContinueGenerateCalendar("sendMonth", idChat);
         Chat chat = chatService.findChat(idChat);
         int fadeTimeZoneInHour = 0;
         if (chat != null) {
@@ -239,6 +236,7 @@ public class CalendarService {
     }
 
     private void sendYear(Long idChat) {
+        logSendMessageForContinueGenerateCalendar("sendYear", idChat);
         Chat chat = chatService.findChat(idChat);
         int fadeTimeZoneInHour = 0;
         if (chat != null) {
@@ -256,4 +254,24 @@ public class CalendarService {
                         String.valueOf(nowYear + 2),
                         String.valueOf(nowYear + 3))), 4, 1);
     }
+
+    private void logProcessNextDetectedValidCommand(String command, long idChat) {
+        logger.info("ChatId={}; Method processNext was detected command: {}", idChat, command);
+    }
+
+    private void logSendMessageForContinueGenerateCalendar(String method, long idChat) {
+        logger.info("ChatId={}; Method {} was start for send message for continue generate calendar query",
+                idChat, method);
+    }
+
+    private int calculateFadeTimeZoneHourForChat(Long idChat) {
+        Chat chat = chatService.findChat(idChat);
+        int fadeTimeZoneInHour = -TimeZoneService.VARIABLE_LOCAL_TIME_ZONE;
+        if (chat != null) {
+            fadeTimeZoneInHour = fadeTimeZoneInHour + chat.getTimeZone();
+        }
+        logger.debug("ChatId={}; Method calculateFadeTimeZoneHourForChat calculate fade = {}", idChat, fadeTimeZoneInHour);
+        return fadeTimeZoneInHour;
+    }
+
 }
