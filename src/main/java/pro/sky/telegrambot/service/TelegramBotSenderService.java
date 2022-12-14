@@ -10,26 +10,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.sky.telegrambot.component.Command;
+import pro.sky.telegrambot.component.TimeZone;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TelegramBotSenderService {
+    public static final String EMPTY_SYMBOL_FOR_BUTTON = " ";
+
+    public static final String REQUEST_SPLIT_SYMBOL = " ";
 
     private final static String MESSAGE_UNKNOWN = "I don't know this command";
-    private final static String VARIABLE_EMPTY_SYMBOL_FOR_BUTTON = "...";
-    public final static String VARIABLE_EMPTY_CALLBACK_DATA_FOR_BUTTON = "...";
 
-    public final static String ALL_PUBLIC_COMMANDS = TelegramBotUpdatesService.COMMAND_START + "\n" +
-            NotificationService.COMMAND_NOTIFICATION + "\n" +
-            TimeZoneService.COMMAND_TIME_ZONE + "\n" +
-            NotificationService.COMMAND_GET_ALL_NOTIFICATION + "\n" +
-            NotificationService.COMMAND_CLEAR_ALL_NOTIFICATION;
+
+    public final static String ALL_PUBLIC_COMMANDS =
+            Command.START.getTitle() + "\n" +
+                    Command.NOTIFICATION.getTitle() + "\n" +
+                    Command.TIME_ZONE.getTitle() + "\n" +
+                    Command.GET_ALL_NOTIFICATION.getTitle() + "\n" +
+                    Command.CLEAR_ALL_NOTIFICATION.getTitle();
     private final Logger logger = LoggerFactory.getLogger(TelegramBotSenderService.class);
     @Autowired
     private TelegramBot telegramBot;
-    @Autowired
-    private TimeZoneService timeZoneService;
 
     public void sendMessage(Long idChat, String textMessage) {
         logger.info("ChatId={}; Method sendMessage was started for send a message : {}", idChat, textMessage);
@@ -64,7 +68,7 @@ public class TelegramBotSenderService {
                 "I know only this command:\n" + ALL_PUBLIC_COMMANDS);
     }
 
-    public void sendButtons(Long idChat, String caption, String command, List<String> nameButtons, int width, int height) {
+    public void sendButtons(Long idChat, String caption, String command, List<String> nameButtons, List<String> dataButtons, int width, int height) {
         logger.info("ChatId={}; Method sendButtons was started for send buttons", idChat);
         InlineKeyboardButton[][] tableButtons = new InlineKeyboardButton[height][width];
         int countNameButtons = 0;
@@ -72,10 +76,10 @@ public class TelegramBotSenderService {
             for (int j = 0; j < width; j++) {
                 if (countNameButtons < nameButtons.size()) {
                     tableButtons[i][j] = new InlineKeyboardButton(nameButtons.get(countNameButtons))
-                            .callbackData(command + " " + nameButtons.get(countNameButtons));
+                            .callbackData(command + REQUEST_SPLIT_SYMBOL + dataButtons.get(countNameButtons));
                 } else {
-                    tableButtons[i][j] = new InlineKeyboardButton(VARIABLE_EMPTY_SYMBOL_FOR_BUTTON)
-                            .callbackData(VARIABLE_EMPTY_CALLBACK_DATA_FOR_BUTTON);
+                    tableButtons[i][j] = new InlineKeyboardButton(EMPTY_SYMBOL_FOR_BUTTON)
+                            .callbackData(Command.EMPTY_CALLBACK_DATA_FOR_BUTTON.getTitle());
                 }
                 countNameButtons++;
             }
@@ -93,6 +97,6 @@ public class TelegramBotSenderService {
     public void sendWhatYourTimeZone(Update update) {
         Long idChat = update.message().chat().id();
         logger.info("ChatId={}; Method sendWhatYourTimeZone was started for ask about Time zone of user", idChat);
-        sendButtons(idChat, "What your time zone?", TimeZoneService.COMMAND_TIME_ZONE, timeZoneService.getTimeZoneList(), 4, 6);
+        sendButtons(idChat, "What your time zone?", Command.TIME_ZONE.getTitle(), TimeZone.getListTitle(), TimeZone.getListHour().stream().map(String::valueOf).collect(Collectors.toList()), 4, 6);
     }
 }

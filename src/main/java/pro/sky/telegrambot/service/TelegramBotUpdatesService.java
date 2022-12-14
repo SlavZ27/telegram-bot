@@ -5,13 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.sky.telegrambot.component.Command;
 
 @Service
 public class TelegramBotUpdatesService {
-
-
-    public final static String COMMAND_START = "/start";
-
     private final Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesService.class);
     @Autowired
     private NotificationService notificationService;
@@ -39,10 +36,15 @@ public class TelegramBotUpdatesService {
             String message = update.message().text().trim();
             Long idChat = update.message().chat().id();
             if (message.startsWith("/")) {
-                String command = parserService.parseWord(message, 0);
+                Command command = Command.fromString(parserService.parseWord(message, 0));
+                if (command == null) {
+                    logger.debug("Method processUpdate don't detected command from = {}", message);
+                    telegramBotSenderService.sendUnknownProcess(update);
+                    return;
+                }
                 switch (command) {
-                    case COMMAND_START:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
+                    case START:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
                         System.out.println(
                                 "detected enter : " +
                                         idChat + " / " +
@@ -51,30 +53,30 @@ public class TelegramBotUpdatesService {
                                         update.message().from().lastName());
                         telegramBotSenderService.sendStart(update);
                         break;
-                    case NotificationService.COMMAND_NOTIFICATION:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
-                        notificationService.processNotification(update);
+                    case NOTIFICATION:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
+                        notificationService.processUpdate(update);
                         break;
-                    case TimeZoneService.COMMAND_TIME_ZONE:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
+                    case TIME_ZONE:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
                         telegramBotSenderService.sendWhatYourTimeZone(update);
                         break;
-                    case NotificationService.COMMAND_GET_ALL_NOTIFICATION:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
+                    case GET_ALL_NOTIFICATION:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
                         notificationService.sendAllNotification(update);
                         telegramBotSenderService.sendMessage(idChat, TelegramBotSenderService.ALL_PUBLIC_COMMANDS);
                         break;
-                    case NotificationService.COMMAND_CLEAR_ALL_NOTIFICATION:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
+                    case CLEAR_ALL_NOTIFICATION:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
                         notificationService.clearAllNotification(update);
                         telegramBotSenderService.sendMessage(idChat, TelegramBotSenderService.ALL_PUBLIC_COMMANDS);
                         break;
-                    case NotificationService.COMMAND_ADMIN_GET_ALL_NOTIFICATION:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
+                    case ADMIN_GET_ALL_NOTIFICATION:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
                         notificationService.sendAllNotificationFromAdmin(update);
                         break;
-                    case NotificationService.COMMAND_ADMIN_DELETE_NOTIFICATION_BY_ID:
-                        logProcessUpdateDetectedValidMessageCommand(command, idChat);
+                    case ADMIN_DELETE_NOTIFICATION_BY_ID:
+                        logProcessUpdateDetectedValidMessageCommand(command.getTitle(), idChat);
                         notificationService.deleteNotificationById(update);
                         break;
                     default:
@@ -97,24 +99,29 @@ public class TelegramBotUpdatesService {
                 return;
             }
             if (update.callbackQuery().data().equals(
-                    TelegramBotSenderService.VARIABLE_EMPTY_CALLBACK_DATA_FOR_BUTTON)) {
+                    Command.EMPTY_CALLBACK_DATA_FOR_BUTTON.getTitle())) {
                 logger.debug("Method processUpdate detected VARIABLE_EMPTY_CALLBACK_DATA_FOR_BUTTON in callbackQuery");
                 return;
             }
             Long idChat = update.callbackQuery().from().id();
             String callbackQuery = update.callbackQuery().data();
-            String callbackQueryCommand = parserService.parseWord(callbackQuery, 0);
+            Command callbackQueryCommand = Command.fromString(parserService.parseWord(callbackQuery, 0));
+            if (callbackQueryCommand == null) {
+                logger.debug("Method processUpdate don't detected command from = {}", callbackQuery);
+                telegramBotSenderService.sendUnknownProcess(update);
+                return;
+            }
             switch (callbackQueryCommand) {
-                case CalendarService.COMMAND_CALENDAR:
-                    logProcessUpdateDetectedValidCallbackQueryCommand(callbackQueryCommand, idChat);
+                case CALENDAR:
+                    logProcessUpdateDetectedValidCallbackQueryCommand(callbackQueryCommand.getTitle(), idChat);
                     calendarService.processNext(update);
                     break;
-                case NotificationService.COMMAND_NOTIFICATION:
-                    logProcessUpdateDetectedValidCallbackQueryCommand(callbackQueryCommand, idChat);
+                case NOTIFICATION:
+                    logProcessUpdateDetectedValidCallbackQueryCommand(callbackQueryCommand.getTitle(), idChat);
                     notificationService.saveNotificationTaskFromCallbackQueryWithoutMessage(update);
                     break;
-                case TimeZoneService.COMMAND_TIME_ZONE:
-                    logProcessUpdateDetectedValidCallbackQueryCommand(callbackQueryCommand, idChat);
+                case TIME_ZONE:
+                    logProcessUpdateDetectedValidCallbackQueryCommand(callbackQueryCommand.getTitle(), idChat);
                     chatService.saveTimeZoneFromCallbackQuery(update);
                     break;
             }

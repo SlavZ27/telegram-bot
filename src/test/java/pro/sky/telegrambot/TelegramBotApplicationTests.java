@@ -20,6 +20,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import pro.sky.telegrambot.component.Command;
+import pro.sky.telegrambot.component.TimeUnit;
 import pro.sky.telegrambot.entity.Chat;
 import pro.sky.telegrambot.entity.NotificationTask;
 import pro.sky.telegrambot.listener.TelegramBotUpdatesListener;
@@ -108,21 +110,21 @@ class TelegramBotApplicationTests {
     @Test
     public void receivingCallbackQueryCommandCalendar() {
         int year = 2020;
-        int month = 02;
-        int day = 02;
-        int hour = 02;
+        int month = 2;
+        int day = 3;
+        int hour = 4;
 
         List<Update> updateListWithCommandNotification = List.of(generateUpdateCallbackQueryWithReflection(
                 "",
                 "",
                 "",
                 50L,
-                CalendarService.COMMAND_CALENDAR + " " +
-                        NotificationService.COMMAND_NOTIFICATION + " "
-                        + CalendarService.VARIABLE_YEAR + " " + year + " "
-                        + CalendarService.VARIABLE_MONTH + " " + month + " "
-                        + CalendarService.VARIABLE_DAY + " " + day + " "
-                        + CalendarService.VARIABLE_HOUR + " " + hour
+                Command.CALENDAR.getTitle() + " " +
+                      Command.NOTIFICATION.getTitle() + " "
+                        + TimeUnit.YEAR + " " + year + " "
+                        + TimeUnit.MONTH + " " + month + " "
+                        + TimeUnit.DAY + " " + day + " "
+                        + TimeUnit.HOUR + " " + hour
         ));
         Chat chat = mapUpdateToChat(updateListWithCommandNotification.get(0));
         chatRepository.save(chat);
@@ -133,11 +135,11 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                CalendarService.COMMAND_CALENDAR + " " +
-                        NotificationService.COMMAND_NOTIFICATION + " "
-                        + CalendarService.VARIABLE_YEAR + " " + year + " "
-                        + CalendarService.VARIABLE_MONTH + " " + month + " "
-                        + CalendarService.VARIABLE_DAY + " " + day
+                Command.CALENDAR.getTitle() + " " +
+                      Command.NOTIFICATION.getTitle() + " "
+                        + TimeUnit.YEAR + " " + year + " "
+                        + TimeUnit.MONTH + " " + month + " "
+                        + TimeUnit.DAY + " " + day
         ));
         telegramBotUpdatesListener.process(updateListWithCommandNotification);
 
@@ -146,10 +148,10 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                CalendarService.COMMAND_CALENDAR + " " +
-                        NotificationService.COMMAND_NOTIFICATION + " "
-                        + CalendarService.VARIABLE_YEAR + " " + year + " "
-                        + CalendarService.VARIABLE_MONTH + " " + month
+                Command.CALENDAR.getTitle() + " " +
+                      Command.NOTIFICATION.getTitle() + " "
+                        + TimeUnit.YEAR + " " + year + " "
+                        + TimeUnit.MONTH + " " + month
         ));
         telegramBotUpdatesListener.process(updateListWithCommandNotification);
 
@@ -158,9 +160,9 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                CalendarService.COMMAND_CALENDAR + " " +
-                        NotificationService.COMMAND_NOTIFICATION + " "
-                        + CalendarService.VARIABLE_YEAR + " " + year
+                Command.CALENDAR.getTitle() + " " +
+                      Command.NOTIFICATION.getTitle() + " "
+                        + TimeUnit.YEAR + " " + year
         ));
         telegramBotUpdatesListener.process(updateListWithCommandNotification);
 
@@ -169,6 +171,7 @@ class TelegramBotApplicationTests {
                         anyLong(),
                         anyString(),
                         anyString(),
+                        anyList(),
                         anyList(),
                         anyInt(),
                         anyInt());
@@ -183,12 +186,12 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_NOTIFICATION + " "
-                        + CalendarService.VARIABLE_YEAR + " " + 2020 + " "
-                        + CalendarService.VARIABLE_MONTH + " " + 02 + " "
-                        + CalendarService.VARIABLE_DAY + " " + 20 + " "
-                        + CalendarService.VARIABLE_HOUR + " " + 20 + " "
-                        + CalendarService.VARIABLE_MINUTES + " " + 20
+              Command.NOTIFICATION.getTitle() + " "
+                        + TimeUnit.YEAR + " " + 2020 + " "
+                        + TimeUnit.MONTH + " " + 2 + " "
+                        + TimeUnit.DAY + " " + 20 + " "
+                        + TimeUnit.HOUR + " " + 20 + " "
+                        + TimeUnit.MINUTE + " " + 20
         ));
         Chat chat = mapUpdateToChat(updateListWithCommandNotification.get(0));
         chatRepository.save(chat);
@@ -209,7 +212,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                TimeZoneService.COMMAND_TIME_ZONE + " 5"
+                Command.TIME_ZONE.getTitle() + " 5"
         ));
 
         Chat chat = mapUpdateToChat(updateListWithCommandTimeZone.get(0));
@@ -240,7 +243,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_NOTIFICATION
+              Command.NOTIFICATION.getTitle()
         ));
         Chat chat = mapUpdateToChat(updateListWithCommandAdminGetAllNotification.get(0));
         chat.setAdmin(true);
@@ -254,6 +257,7 @@ class TelegramBotApplicationTests {
                         anyLong(),
                         anyString(),
                         anyString(),
+                        anyList(),
                         anyList(),
                         anyInt(),
                         anyInt());
@@ -271,7 +275,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_ADMIN_DELETE_NOTIFICATION_BY_ID + " " +
+              Command.ADMIN_DELETE_NOTIFICATION_BY_ID.getTitle() + " " +
                         notificationTaskRandom.getId()
         ));
         Chat chat = mapUpdateToChat(updateListWithCommandAdminGetAllNotification.get(0));
@@ -289,7 +293,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_ADMIN_DELETE_NOTIFICATION_BY_ID + " 5"
+              Command.ADMIN_DELETE_NOTIFICATION_BY_ID.getTitle() + " 5"
         ));
 
         telegramBotUpdatesListener.process(updateListWithCommandAdminGetAllNotification);
@@ -311,14 +315,13 @@ class TelegramBotApplicationTests {
             notificationTaskRepository.save(notificationTask1);
             notificationTaskRepository.save(notificationTask2);
         }
-        int sizeOfRepository = notificationTaskRepository.getAll().size();
 
         List<Update> updateListWithCommandAdminGetAllNotification = List.of(generateUpdateMessageWithReflection(
                 "",
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_ADMIN_GET_ALL_NOTIFICATION
+              Command.ADMIN_GET_ALL_NOTIFICATION.getTitle()
         ));
         Chat chat = mapUpdateToChat(updateListWithCommandAdminGetAllNotification.get(0));
         chat.setAdmin(true);
@@ -408,7 +411,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 -1L,
-                TelegramBotUpdatesService.COMMAND_START
+                Command.START.getTitle()
         ));
 
         assertThat(notificationTaskRepository.getAll().size()).isEqualTo(sizeOfRepository);
@@ -427,7 +430,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 1L,
-                NotificationService.COMMAND_NOTIFICATION + " 01.01.2020 noti"
+              Command.NOTIFICATION.getTitle() + " 01.01.2020 noti"
         ));
 
         assertThat(notificationTaskRepository.getAll().size()).isEqualTo(sizeOfRepository);
@@ -502,14 +505,14 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_GET_ALL_NOTIFICATION));
+              Command.GET_ALL_NOTIFICATION.getTitle()));
 
         List<Update> updateGetAllEmptyCheck = List.of(generateUpdateMessageWithReflection(
                 "",
                 "",
                 "",
                 51L,
-                NotificationService.COMMAND_GET_ALL_NOTIFICATION));
+              Command.GET_ALL_NOTIFICATION.getTitle()));
 
         assertThat(notificationTaskRepository.getAll().size()).isEqualTo(sizeOfRepository);
         telegramBotUpdatesListener.process(updateGetAllEmptyCheck);
@@ -554,7 +557,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_NOTIFICATION + " " + request
+              Command.NOTIFICATION.getTitle() + " " + request
         ));
 
         Chat chat = mapUpdateToChat(updateListNotification.get(0));
@@ -611,7 +614,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                TimeZoneService.COMMAND_TIME_ZONE
+                Command.TIME_ZONE.getTitle()
         ));
 
         assertThat(notificationTaskRepository.getAll().size()).isEqualTo(sizeOfRepository);
@@ -643,7 +646,7 @@ class TelegramBotApplicationTests {
                 "",
                 "",
                 50L,
-                NotificationService.COMMAND_CLEAR_ALL_NOTIFICATION
+              Command.CLEAR_ALL_NOTIFICATION.getTitle()
         ));
 
 
@@ -696,10 +699,6 @@ class TelegramBotApplicationTests {
             notificationTask.setSender(update.callbackQuery().from().username());
         }
         return notificationTask;
-    }
-
-    private Update generateUpdateCallbackQueryWithReflection() {
-        return generateUpdateCallbackQueryWithReflection("", "", "", -1L, "");
     }
 
     private Update generateUpdateCallbackQueryWithReflection(String username,
@@ -810,7 +809,7 @@ class TelegramBotApplicationTests {
 
     private Long generateIdIfEmpty(Long id) {
         if (id < 0) {
-            Long idTemp = -1L;
+            long idTemp = -1L;
             //id with <100 I leave for my needs
             while (idTemp < 100) {
                 idTemp = faker.random().nextLong();

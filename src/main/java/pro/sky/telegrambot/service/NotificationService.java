@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import pro.sky.telegrambot.component.Command;
 import pro.sky.telegrambot.entity.NotificationTask;
 import pro.sky.telegrambot.repository.NotificationTaskRepository;
 
@@ -19,12 +20,6 @@ import java.util.List;
 
 @Service
 public class NotificationService {
-
-    public final static String COMMAND_ADMIN_GET_ALL_NOTIFICATION = "/get_all_notification_admin";
-    public final static String COMMAND_ADMIN_DELETE_NOTIFICATION_BY_ID = "/delete_notification_by_id_admin";
-    public final static String COMMAND_NOTIFICATION = "/notification";
-    public final static String COMMAND_GET_ALL_NOTIFICATION = "/get_all_notification";
-    public final static String COMMAND_CLEAR_ALL_NOTIFICATION = "/clear_all_notification";
     public final static String MESSAGE_NOTIFICATION_DEFAULT = "/notification 01.01.2022 20:00 Сделать домашнюю работу";
     public final static String MESSAGE_BAD_REQUEST_NOTIFICATION = "Sorry. This request is bad. I need a request like : "
             + MESSAGE_NOTIFICATION_DEFAULT + ". And you can tap /notification";
@@ -44,7 +39,7 @@ public class NotificationService {
     private ParserService parserService;
     private final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
-    public void processNotification(Update update) {
+    public void processUpdate(Update update) {
         Long idChat = update.message().chat().id();
         logger.info("ChatId={}; Method processNotification was started for process update", idChat);
 
@@ -54,16 +49,11 @@ public class NotificationService {
             return;
         }
 
-        if (update.message().text().length() < COMMAND_NOTIFICATION.length()) {
-            logger.info("ChatId={}; Method processNotification detected bad request notification : {}", idChat, update.message().text());
-            telegramBotSenderService.sendMessage(idChat, MESSAGE_BAD_REQUEST_NOTIFICATION);
-            return;
-        }
-
-        if (update.message().text().equals(COMMAND_NOTIFICATION)) {
-            logger.info("ChatId={}; Method processNotification detected '" + COMMAND_NOTIFICATION
-                    + "' without parameters", idChat);
-            calendarService.calendarStart(update);
+        if (update.message().text().length() == Command.NOTIFICATION.getTitle().length()
+                && Command.NOTIFICATION.equals(Command.fromString(update.message().text()))) {
+            logger.info("ChatId={}; Method processNotification detected '" + Command.NOTIFICATION +
+                    "' without parameters and start calendar", idChat);
+            calendarService.calendarStart(update, Command.NOTIFICATION);
             return;
         }
 
@@ -229,9 +219,7 @@ public class NotificationService {
             return;
         }
 
-        LocalDateTime localDateTime = dateTime.
-                plusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).
-                minusHours(chatService.findChat(idChat).getTimeZone());
+        LocalDateTime localDateTime = getLocalDateTimeWithTimeZoneOfChat(idChat, localDate, localTime);
 
         NotificationTask notificationTask = new NotificationTask();
         notificationTask.setDateTime(dateTime);
@@ -285,7 +273,7 @@ public class NotificationService {
     }
 
     private NotificationTask parseNotificationTaskFromUpdate(Update update) {
-        StringBuilder sb = new StringBuilder(update.message().text().substring(COMMAND_NOTIFICATION.length()).trim());
+        StringBuilder sb = new StringBuilder(update.message().text().substring(Command.NOTIFICATION.getTitle().length()).trim());
         if (sb.length() < 14 || sb.indexOf(" ") < 0) {
             return null;
         }
@@ -390,16 +378,14 @@ public class NotificationService {
             return null;
         }
 
-        LocalDateTime dateTime = LocalDateTime.of(localDate, localTime);
 
         if (chatService.findChat(idChat) == null) {
             logger.debug("ChatId={}; Method parseNotificationTaskFromUpdate don't found chat", idChat);
             return null;
         }
 
-        LocalDateTime localDateTime = dateTime.
-                plusHours(TimeZoneService.VARIABLE_LOCAL_TIME_ZONE).
-                minusHours(chatService.findChat(idChat).getTimeZone());
+        LocalDateTime dateTime = LocalDateTime.of(localDate, localTime);
+        LocalDateTime localDateTime = getLocalDateTimeWithTimeZoneOfChat(idChat, localDate, localTime);
 
         NotificationTask notificationTask = new NotificationTask();
         notificationTask.setDateTime(dateTime);
@@ -429,6 +415,11 @@ public class NotificationService {
         notificationTask.setSender(userName.toString());
         logger.debug("ChatId={}; Method parseNotificationTaskFromUpdate done", idChat);
         return notificationTask;
+    }
+
+    private LocalDateTime getLocalDateTimeWithTimeZoneOfChat(Long idChat, LocalDate localDate, LocalTime localTime) {
+        return LocalDateTime.of(localDate, localTime).plusHours(CalendarService.getLocalTimeZone()).
+                minusHours(chatService.findChat(idChat).getTimeZone());
     }
 
 }
